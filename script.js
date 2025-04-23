@@ -28,7 +28,7 @@ const players = {
     }
 };
 
-let studyId = 'ExpTwoProlific';
+let studyId = 'DataBadRobotSalient';
 
 const paramsHRI = new URLSearchParams(window.location.search);
 const writeToTryoutData = paramsHRI.get('notProlific');
@@ -2034,7 +2034,11 @@ function moveAIAlongPath(path, scene) {
         const nextPoint = path[pathIndex + 1];
         const currentPoint = path[pathIndex];
 
-        if(aiState === "NAVIGATING_TO_SUBGRID" || aiState === "SAVING_STAGE_ONE"){
+        // if(aiState === "NAVIGATING_TO_SUBGRID" || aiState === "SAVING_STAGE_ONE"){
+        //     aiStartX = nextPoint.x;
+        //     aiStartY = nextPoint.y;
+        // }
+        if(aiState === "NAVIGATING_TO_SUBGRID"){
             aiStartX = nextPoint.x;
             aiStartY = nextPoint.y;
         }else if(aiState == "COLLECTING"){
@@ -2043,12 +2047,13 @@ function moveAIAlongPath(path, scene) {
             localAIy = nextPoint.y;
             console.log("AI position when in collecting mode");
             console.log(localAIx, localAIy);
-        }else if(aiState === "SAVING_STAGE_TWO"){
-            localAIx = nextPoint.x;
-            localAIy = nextPoint.y;
-            console.log("AI position when in collecting mode");
-            console.log(localAIx, localAIy);
         }
+        // else if(aiState === "SAVING_STAGE_TWO"){
+        //     localAIx = nextPoint.x;
+        //     localAIy = nextPoint.y;
+        //     console.log("AI position when in collecting mode");
+        //     console.log(localAIx, localAIy);
+        // }
 
         const dx = nextPoint.x - currentPoint.x;
         const dy = nextPoint.y - currentPoint.y;
@@ -2088,22 +2093,23 @@ function moveAIAlongPath(path, scene) {
             aiState = "COLLECTING";
         }else if (aiState === "COLLECTING"){
             onComplete();
-        }else if (aiState === "SAVING_STAGE_ONE"){
-            aiState = "SAVING_STAGE_TWO";
-            isPathBeingFollowed = false; 
-            pathIndex = 0;
-        }else if(aiState === "SAVING_STAGE_TWO"){
-            aiState = "NAVIGATING_TO_SUBGRID";
-            isPathBeingFollowed = false; 
-            pathIndex = 0;
-
-            aiStartX =  Math.round(player2.x / cellWidth) - 1;
-            aiStartY = Math.round(player2.y / cellHeight) -  1;
-
-            localAIx = null;
-            localAIy = null;
-            subgridAI = null;
         }
+        // else if (aiState === "SAVING_STAGE_ONE"){
+        //     aiState = "SAVING_STAGE_TWO";
+        //     isPathBeingFollowed = false; 
+        //     pathIndex = 0;
+        // }else if(aiState === "SAVING_STAGE_TWO"){
+        //     aiState = "NAVIGATING_TO_SUBGRID";
+        //     isPathBeingFollowed = false; 
+        //     pathIndex = 0;
+
+        //     aiStartX =  Math.round(player2.x / cellWidth) - 1;
+        //     aiStartY = Math.round(player2.y / cellHeight) -  1;
+
+        //     localAIx = null;
+        //     localAIy = null;
+        //     subgridAI = null;
+        // }
     }
 }
 
@@ -2277,13 +2283,14 @@ function handleAIStateandDecision(){
             localAIx = aiStartX - subgridAI[0] + 2;
             localAIy = aiStartY - subgridAI[1] + 1;
             moveToNextTarget(localTargets);
-        }else if (aiState === "SAVING_STAGE_ONE"){
-            console.log("SAVING_STAGE_ONE");
-            handleSavingStageOne();
-        }else if (aiState === "SAVING_STAGE_TWO"){
-            console.log("SAVING_STAGE_TWO");
-            handleSavingStageTwo();
         }
+        // else if (aiState === "SAVING_STAGE_ONE"){
+        //     console.log("SAVING_STAGE_ONE");
+        //     handleSavingStageOne();
+        // }else if (aiState === "SAVING_STAGE_TWO"){
+        //     console.log("SAVING_STAGE_TWO");
+        //     handleSavingStageTwo();
+        // }
     }else if(playerTwoTrapped === 'blue'){
 
         aiState = "COLLECTING";
@@ -2339,13 +2346,14 @@ function handleAIStateandDecision(){
         }
 
         playerTwoTrapped = 'saving completed';
-    }else if (timeToSaveTrappedHuman && aiState === "NAVIGATING_TO_SUBGRID" && playerOneTrapped === true){
-
-        isPathBeingFollowed = false;
-        timeToSaveTrappedHuman = false;
-        aiState = "SAVING_STAGE_ONE";
-        
     }
+    // else if (timeToSaveTrappedHuman && aiState === "NAVIGATING_TO_SUBGRID" && playerOneTrapped === true){
+
+    //     isPathBeingFollowed = false;
+    //     timeToSaveTrappedHuman = false;
+    //     aiState = "SAVING_STAGE_ONE";
+        
+    // }
 }
 
 // function calculateDirection(point1, point2) {
