@@ -28,7 +28,7 @@ const players = {
     }
 };
 
-let studyId = 'DataBadRobotSalient';
+let studyId = 'DataBadRobot';
 
 const paramsHRI = new URLSearchParams(window.location.search);
 const writeToTryoutData = paramsHRI.get('notProlific');
@@ -1388,8 +1388,8 @@ function create() {
     // this.overlay.setVisible(false);
     this.messageText = this.add.text(this.sys.game.config.width / 2, this.sys.game.config.height / 2, '', specificSizeStyle).setOrigin(0.5, 0.5).setDepth(1001);
 
-    this.highlight = this.add.rectangle(0, 0, cellWidth * 3, cellHeight * 3, 0xFFA500, 0.5);
-    this.highlight.setVisible(false);
+    // this.highlight = this.add.rectangle(0, 0, cellWidth * 3, cellHeight * 3, 0xFFA500, 0.5);
+    // this.highlight.setVisible(false);
 
     // Initialize a blink timer
     this.blinkTimer = 0;
@@ -1457,37 +1457,37 @@ function update(time) {
         }
     }
 
-    if (this.shouldBlink === true) {
-        this.blinkTimer++;
+    // if (this.shouldBlink === true) {
+    //     this.blinkTimer++;
 
-        // if (this.blinkCounter == this.blinkMax * 2 - 2){
-        //     this.blinkInterval = 50
-        // }
+    //     // if (this.blinkCounter == this.blinkMax * 2 - 2){
+    //     //     this.blinkInterval = 50
+    //     // }
 
-        // Toggle visibility based on the blink timer
-        if (this.blinkTimer % this.blinkInterval === 0) {
-            this.highlight.setVisible(!this.highlight.visible);
-            this.blinkCounter++;
+    //     // Toggle visibility based on the blink timer
+    //     if (this.blinkTimer % this.blinkInterval === 0) {
+    //         this.highlight.setVisible(!this.highlight.visible);
+    //         this.blinkCounter++;
 
-            // Stop blinking after 4 blinks
-            if (this.blinkCounter >= this.blinkMax * 2) {
-                this.shouldBlink = "blinked";
-                this.highlight.setVisible(false);
-                this.blinkCounter = 0;
-                this.blinkStartTimer = null;
-            }
-        }
+    //         // Stop blinking after 4 blinks
+    //         if (this.blinkCounter >= this.blinkMax * 2) {
+    //             this.shouldBlink = "blinked";
+    //             this.highlight.setVisible(false);
+    //             this.blinkCounter = 0;
+    //             this.blinkStartTimer = null;
+    //         }
+    //     }
 
-        // Position the highlight over the correct player
-        if (playerOneTrapped === true) {
-            this.highlight.setPosition(humanTrappedGrid[0] * cellWidth + 0.5 * cellWidth, humanTrappedGrid[1] * cellHeight + 0.5 * cellHeight);
-        } else if (playerTwoTrapped === true) {
-            this.highlight.setPosition(trappedAIStartGrid[0] * cellWidth + 0.5 * cellWidth, trappedAIStartGrid[1] * cellHeight + 0.5 * cellHeight);
-        }
-    } else {
-        // Hide the highlight when no player is trapped
-        this.highlight.setVisible(false);
-    }
+    //     // Position the highlight over the correct player
+    //     if (playerOneTrapped === true) {
+    //         this.highlight.setPosition(humanTrappedGrid[0] * cellWidth + 0.5 * cellWidth, humanTrappedGrid[1] * cellHeight + 0.5 * cellHeight);
+    //     } else if (playerTwoTrapped === true) {
+    //         this.highlight.setPosition(trappedAIStartGrid[0] * cellWidth + 0.5 * cellWidth, trappedAIStartGrid[1] * cellHeight + 0.5 * cellHeight);
+    //     }
+    // } else {
+    //     // Hide the highlight when no player is trapped
+    //     this.highlight.setVisible(false);
+    // }
 
     if (time - lastAIUpdate > AIUpdateInterval) {
         // If currently following a path, continue moving along it
