@@ -2,6 +2,36 @@
 import { writeRealtimeDatabase,writeURLParameters,readRealtimeDatabase,
     blockRandomization,finalizeBlockRandomization,firebaseUserId } from "./firebasepsych1.0.js";
 
+
+import LsPomdpPolicySession from './lspomdp.js';
+
+// globals
+let pomdp = null;         // the live policy
+
+// when your experiment starts:
+pomdp = new LsPomdpPolicySession();
+
+let [action, belief] = pomdp.start('r_trap'); 
+
+function applySignal(action) {
+    const act = (action || '').trim();
+    let result = null;
+  
+    if (act === 'a_0') {
+      result = false;
+    } else if (act === 'a_1') {
+      result = true;
+    } else if (act === 'h_0') {
+      result = false;
+    } else if (act === 'h_1') {
+      result = true;
+    } else {
+      console.warn('Unexpected action:', act);
+    }
+  
+    return result;
+  }
+  
 // const cellHeight = 40; 
 // const cellWidth = 60; 
 // const gridHeight = 13;
@@ -28,7 +58,7 @@ const players = {
     }
 };
 
-let studyId = 'DataBadRobotSalient';
+let studyId = 'ExpTwoProlific';
 
 const paramsHRI = new URLSearchParams(window.location.search);
 const writeToTryoutData = paramsHRI.get('notProlific');
@@ -113,6 +143,17 @@ if (assignedCondition === 0){
       };
 }
 
+trapTimeForEachRound = {
+    0: { human: 200, AI: 20 },
+    1: { human: 20, AI: 200 },
+    2: { human: 200, AI: 20 },
+    3: { human: 20, AI: 200 },
+    4: { human: 200, AI: 20 },
+    5: { human: 20, AI: 200},
+    6: { human: 200, AI: 20 },
+    7: { human: 20, AI: 200},
+    8: { human: 200, AI: 20 },
+  };
 
 
 let trapTimeForEachRoundToSave = JSON.parse(JSON.stringify(trapTimeForEachRound));
@@ -127,6 +168,16 @@ for (let round in trapTimeForEachRoundToSave ) {
 }
 
 console.log(trapTimeForEachRound);
+
+let signal;
+
+signal = applySignal(action);
+
+console.log("this round we are signaling first round", signal);
+
+let helping = false;
+
+let saved = false;
 
 let eventNumber = 0;
 
@@ -145,7 +196,7 @@ let isDoorRotating = false;
 let doorSwitch = false;
 
 let currentTime = 0; // Start time in seconds
-let gameDuration = 90; 
+let gameDuration = 30; 
 
 let playerOneTrapped = false;
 let playerTwoTrapped = false;
@@ -569,9 +620,6 @@ function calculateDoors() {
         const doors = [
             { coord: [startX, Math.floor((endY + startY) / 2)], orientation: "V" },
             { coord: [endX + 1, Math.floor((endY + startY) / 2)], orientation: "V" },
-            // Commented out horizontal doors for now
-            // { coord: [Math.floor((endX + startX) / 2), endY + 1], orientation: "H" },
-            // { coord: [Math.floor((endX + startX) / 2), startY], orientation: "H" }
         ];
 
         shuffle(doors);
@@ -793,12 +841,6 @@ function onTokenHit(player, token) {
                 proceedButton.setFillStyle(0xCCCCCC);
             }
         }
-
-
-        // if(playerName === 'AI'){
-        //     localTargets[token.index] = [0, 0];
-        // }
-        
         // Update player's token count
         players[playerName].tokensCollected += 1;
         
@@ -838,7 +880,7 @@ function updateGameTime(scene) {
 
         currentRound++;
 
-        if (currentRound > 5) {
+        if (currentRound > 9) {
             console.log("Game Over");
             isTimeoutScheduled = true;
             // End the game and show post-game content
@@ -847,12 +889,46 @@ function updateGameTime(scene) {
             endGame(scene);
             return;
         }
+
+        let aiTrap = trapTimeForEachRound[currentRound - 1].AI;
+
+        let mode;
+        if (aiTrap === 20) {
+        mode = 'r_trap';   // robot (AI) trapped → robot acts (signal decision)
+        } else {
+        mode = 'h_trap';   // human trapped → human acts
+        }
+
+        console.log("did we save the robot", saved);
+
+        console.log("the upcoming mode is", mode);
+
+        const savedBool = saved === true;  // normalize just in case
+
+        const obs = (mode === 'r_trap')
+        ? 'none'                       // ignore obs on robot/signaling step
+        : (savedBool ? 's_1' : 's_0'); // human phase uses outcome
+
+        console.log("the observation is", obs);
+
+        [action, belief] = pomdp.updateAndAct(obs, mode);
+
+        console.log("our action is", action);
+
+        if(mode === 'r_trap'){
+            signal = applySignal(action);
+            console.log("this round we are signling", signal);
+
+        }else if(mode === 'h_trap'){
+            helping = applySignal(action);
+            console.log("this round we are helping", helping);
+        }
   
       isTimeoutScheduled = true;
       scene.overlay.setVisible(true);
       if(scene.messageText) scene.messageText.destroy();
       let specificSizeStyle = createTextStyle(25 * dpr, '#000');
-      scene.messageText = scene.add.text(scene.sys.game.config.width / 2, scene.sys.game.config.height / 2, `We will now start round ${currentRound} of 5.\nPlease use the arrow keys to move your red player`, specificSizeStyle).setOrigin(0.5, 0.5).setDepth(1001);
+      scene.messageText = scene.add.text(scene.sys.game.config.width / 2, scene.sys.game.config.height / 2, `We will now start round ${currentRound} of 9.\nPlease use the arrow keys to move your red player`, specificSizeStyle).setOrigin(0.5, 0.5).setDepth(1001);
       scene.messageText.setVisible(true);
 
       runUpdateLogic = false;
@@ -868,9 +944,6 @@ function updateGameTime(scene) {
           proceedToNextRound(scene);
       });
       
-    //   autoProceedTimeout = setTimeout(() => {
-    //       proceedToNextRound(scene);
-    //   }, 60000); // 60 seconds
     }
   }  
 
@@ -894,6 +967,8 @@ function proceedToNextRound(scene) {
   
     playerOneTrapped = false;
     playerTwoTrapped = false;
+
+    saved = false;
   
     trappedDoors = null;
   
@@ -930,9 +1005,12 @@ function proceedToNextRound(scene) {
   
     humanDoortoLeave = [];
 
-    scene.blinkTimer = 0;
-    scene.blinkCounter = 0; 
-    scene.shouldBlink = false; 
+    if(signal){
+        scene.blinkTimer = 0;
+        scene.blinkCounter = 0; 
+        scene.shouldBlink = false; 
+    }
+
           
     scene.overlay.setVisible(false);
     scene.messageText.setVisible(false);
@@ -1154,10 +1232,6 @@ function findEndCoordinates(chosenGrid, aiDoors) {
              Math.abs(door[1] - avgY) < 1e-6;  // The '1e-6' is a small tolerance value
     });
   
-    // console.log("matchingDoor");
-    // console.log(matchingDoor);
-    // console.log(doorAIadjusted);
-
     let endX, endY;
   
     if (matchingDoor) {
@@ -1208,10 +1282,6 @@ function getTargetsInLocalCoordinates() {
 /* Get the documentElement (<html>) to display the page in fullscreen */
 var elem = document.documentElement;
 
-/* View in fullscreen */
-/**
- * Turn on Fullscreen
- */
 function openFullscreen() {
     document.body.style.overflow = "hidden";
     if (elem.requestFullscreen) {
@@ -1388,36 +1458,16 @@ function create() {
     // this.overlay.setVisible(false);
     this.messageText = this.add.text(this.sys.game.config.width / 2, this.sys.game.config.height / 2, '', specificSizeStyle).setOrigin(0.5, 0.5).setDepth(1001);
 
-    this.highlight = this.add.rectangle(0, 0, cellWidth * 3, cellHeight * 3, 0xFFA500, 0.5);
-    this.highlight.setVisible(false);
-
-    // Initialize a blink timer
-    this.blinkTimer = 0;
-    this.blinkInterval = 8; 
-    this.blinkCounter = 0; 
-    this.shouldBlink = false; 
-    this.blinkMax = 4; 
-
-    // this.highlightSprite = this.add.sprite(0, 0, 'highlightSprite').setScale(0.2 * dpr);
-
-
-    // this.highlightSprite.setVisible(false);
-
-    //  // Create a button using graphics
-    //  this.proceedButton = this.add.rectangle(this.sys.game.config.width / 2, this.sys.game.config.height * 0.65, 100, 30, 0x007BFF).setOrigin(0.5, 0.5).setInteractive().setDepth(1001);
-    //  // Button label
-    //  specificSizeStyle = createTextStyle(25, '#FFF');
-    //  this.proceedButtonText = this.add.text(this.sys.game.config.width / 2, this.sys.game.config.height * 0.65, 'Proceed', specificSizeStyle).setOrigin(0.5, 0.5).setDepth(1002);
-    //  // Initially hide the button
-    //  this.proceedButton.setVisible(false);
-    //  this.proceedButtonText.setVisible(false);
-     
-    //  // Button interaction
-    //  this.proceedButton.on('pointerup', () => {
-    //      displayNextMessage(this);
-    //  });
+        this.highlight = this.add.rectangle(0, 0, cellWidth * 3, cellHeight * 3, 0xFFA500, 0.5);
+        this.highlight.setVisible(false);
     
-    
+        // Initialize a blink timer
+        this.blinkTimer = 0;
+        this.blinkInterval = 8; 
+        this.blinkCounter = 0; 
+        this.shouldBlink = false; 
+        this.blinkMax = 4; 
+
 }
 
 function update(time) {
@@ -1426,28 +1476,7 @@ function update(time) {
 
     handleAIStateandDecision();
 
-    // if(isPathBeingFollowed){
-    //     AIUpdateInterval = handleAIInterval();
-    // }else{
-    //     AIUpdateInterval = 500;
-    // }
-
-    // if (playerOneTrapped === true) {
-    //     // Position the highlight over player1 and make it visible
-    //     this.highlight.setPosition(humanTrappedGrid[0] * cellWidth + 0.5 * cellWidth, humanTrappedGrid[1] * cellHeight + 0.5 * cellHeight);
-    //     this.highlight.setVisible(true);
-    // } else if (playerTwoTrapped  === true) {
-    //     // Position the highlight over player2 and make it visible
-    //     this.highlight.setPosition( trappedAIStartGrid[0] * cellWidth + 0.5 * cellWidth,  trappedAIStartGrid[1] * cellHeight + 0.5 * cellHeight);
-    //     this.highlight.setVisible(true);
-    // } else {
-    //     // Hide the highlight when no player is trapped
-    //     this.highlight.setVisible(false);
-    // }
-
-
-
-    if ((playerOneTrapped === true || playerTwoTrapped === true) && !this.shouldBlink) {
+    if (playerTwoTrapped === true && !this.shouldBlink && signal) {
         if (!this.blinkStartTimer) {
             this.blinkStartTimer = this.time.now; // Capture the start time
         }
@@ -1457,12 +1486,8 @@ function update(time) {
         }
     }
 
-    if (this.shouldBlink === true) {
+    if (this.shouldBlink === true && signal) {
         this.blinkTimer++;
-
-        // if (this.blinkCounter == this.blinkMax * 2 - 2){
-        //     this.blinkInterval = 50
-        // }
 
         // Toggle visibility based on the blink timer
         if (this.blinkTimer % this.blinkInterval === 0) {
@@ -1485,8 +1510,12 @@ function update(time) {
             this.highlight.setPosition(trappedAIStartGrid[0] * cellWidth + 0.5 * cellWidth, trappedAIStartGrid[1] * cellHeight + 0.5 * cellHeight);
         }
     } else {
+        if(signal){
         // Hide the highlight when no player is trapped
         this.highlight.setVisible(false);
+
+        }
+
     }
 
     if (time - lastAIUpdate > AIUpdateInterval) {
@@ -1563,12 +1592,6 @@ function update(time) {
 
                 console.log("doors in trapped grid");
                 console.log(trappedDoors);
-                // if(rescueStartTime === null) {
-                //     console.log("start counting down");
-                //     rescueStartTime = new Date().getTime();
-                // }
-                // const currentTime = new Date().getTime();
-                // if(currentTime - rescueStartTime >= 5000) { // 5000 milliseconds = 5 seconds
                     
                 let doorToAddHuman = { coord: humanDoortoLeave, orientation: "V" };
                 
@@ -1604,9 +1627,6 @@ function update(time) {
                 console.log("saved trapped human player");
                 humanTrappedGrid = [];
             }
-            // } else {
-            // rescueStartTime = null; // Reset the start time
-            // }
       }
     }
 
@@ -1614,14 +1634,10 @@ function update(time) {
         if (trappedDoors != null){
             //console.log("trapped door updated");
             if(isCloseToDoor(player1, trappedDoors)) {
-                // if(rescueStartTime === null) {
-                //     console.log("start counting down");
-                //     rescueStartTime = new Date().getTime();
-                // }
-                // const currentTime = new Date().getTime();
-                // if(currentTime - rescueStartTime >= 5000) { // 5000 milliseconds = 5 seconds
                 console.log("doors in trapped grid");
                 console.log(trappedDoors);
+
+                saved = true;
 
                 let doorToAddAI = { coord: aiDoorToLeave, orientation: "V" };
                 doorAICoords.push(doorToAddAI);
@@ -1654,9 +1670,6 @@ function update(time) {
                 playerTwoTrapped = 'blue';
                 console.log("saved trapped AI player");
             }
-            // } else {
-            // rescueStartTime = null; // Reset the start time
-            // }
       }
     }
 }
@@ -1714,8 +1727,6 @@ function handleMovement(player, dx, dy, playerID, scene) {
             console.log("door allowed to cross");
             //const targetDoorGraphics = findDoorSprite(door_coord, scene.doorSprites);
             coverDoor(door_coord, scene);
-            //console.log("door graphics is");
-            //console.log(door_coord);
 
             if (playerEntersSubgrid(currentGridX, currentGridY, nextGridX, nextGridY)) {
 
@@ -1886,7 +1897,7 @@ function handleMovement(player, dx, dy, playerID, scene) {
     player.x = potentialX;
     player.y = potentialY;
 
-    if(startGamePlay && currentRound < 6){
+    if(startGamePlay && currentRound < 10){
 
         let timestamp = Date.now() - startOfGamePlay;
 
@@ -2034,26 +2045,34 @@ function moveAIAlongPath(path, scene) {
         const nextPoint = path[pathIndex + 1];
         const currentPoint = path[pathIndex];
 
-        // if(aiState === "NAVIGATING_TO_SUBGRID" || aiState === "SAVING_STAGE_ONE"){
-        //     aiStartX = nextPoint.x;
-        //     aiStartY = nextPoint.y;
-        // }
-        if(aiState === "NAVIGATING_TO_SUBGRID"){
-            aiStartX = nextPoint.x;
-            aiStartY = nextPoint.y;
-        }else if(aiState == "COLLECTING"){
-
-            localAIx = nextPoint.x;
-            localAIy = nextPoint.y;
-            console.log("AI position when in collecting mode");
-            console.log(localAIx, localAIy);
+        if(helping){
+            if(aiState === "NAVIGATING_TO_SUBGRID" || aiState === "SAVING_STAGE_ONE"){
+                aiStartX = nextPoint.x;
+                aiStartY = nextPoint.y;
+            }else if(aiState == "COLLECTING"){
+    
+                localAIx = nextPoint.x;
+                localAIy = nextPoint.y;
+                console.log("AI position when in collecting mode");
+                console.log(localAIx, localAIy);
+            }else if(aiState === "SAVING_STAGE_TWO"){
+                localAIx = nextPoint.x;
+                localAIy = nextPoint.y;
+                console.log("AI position when in collecting mode");
+                console.log(localAIx, localAIy);
+            }
+        }else if(!helping){
+            if(aiState === "NAVIGATING_TO_SUBGRID"){
+                aiStartX = nextPoint.x;
+                aiStartY = nextPoint.y;
+            }else if(aiState == "COLLECTING"){
+                localAIx = nextPoint.x;
+                localAIy = nextPoint.y;
+                console.log("AI position when in collecting mode");
+                console.log(localAIx, localAIy);
+            }
         }
-        // else if(aiState === "SAVING_STAGE_TWO"){
-        //     localAIx = nextPoint.x;
-        //     localAIy = nextPoint.y;
-        //     console.log("AI position when in collecting mode");
-        //     console.log(localAIx, localAIy);
-        // }
+
 
         const dx = nextPoint.x - currentPoint.x;
         const dy = nextPoint.y - currentPoint.y;
@@ -2085,7 +2104,7 @@ function moveAIAlongPath(path, scene) {
         console.log(path);
     }
 
-    if (pathIndex === path.length - 1){
+    if (pathIndex === path.length - 1 && helping){
 
         if(aiState === "NAVIGATING_TO_SUBGRID"){
             isPathBeingFollowed = false; 
@@ -2093,23 +2112,30 @@ function moveAIAlongPath(path, scene) {
             aiState = "COLLECTING";
         }else if (aiState === "COLLECTING"){
             onComplete();
+        }else if (aiState === "SAVING_STAGE_ONE"){
+            aiState = "SAVING_STAGE_TWO";
+            isPathBeingFollowed = false; 
+            pathIndex = 0;
+        }else if(aiState === "SAVING_STAGE_TWO"){
+            aiState = "NAVIGATING_TO_SUBGRID";
+            isPathBeingFollowed = false; 
+            pathIndex = 0;
+
+            aiStartX =  Math.round(player2.x / cellWidth) - 1;
+            aiStartY = Math.round(player2.y / cellHeight) -  1;
+
+            localAIx = null;
+            localAIy = null;
+            subgridAI = null;
         }
-        // else if (aiState === "SAVING_STAGE_ONE"){
-        //     aiState = "SAVING_STAGE_TWO";
-        //     isPathBeingFollowed = false; 
-        //     pathIndex = 0;
-        // }else if(aiState === "SAVING_STAGE_TWO"){
-        //     aiState = "NAVIGATING_TO_SUBGRID";
-        //     isPathBeingFollowed = false; 
-        //     pathIndex = 0;
-
-        //     aiStartX =  Math.round(player2.x / cellWidth) - 1;
-        //     aiStartY = Math.round(player2.y / cellHeight) -  1;
-
-        //     localAIx = null;
-        //     localAIy = null;
-        //     subgridAI = null;
-        // }
+    }else if(pathIndex === path.length - 1 && !helping){
+        if(aiState === "NAVIGATING_TO_SUBGRID"){
+            isPathBeingFollowed = false; 
+            pathIndex = 0;
+            aiState = "COLLECTING";
+        }else if (aiState === "COLLECTING"){
+            onComplete();
+        }
     }
 }
 
@@ -2269,28 +2295,44 @@ function handleSavingStageTwo(){
 function handleAIStateandDecision(){
 
     if (!isPathBeingFollowed) {
-        // If not currently following a path, calculate a new one
-        if (aiState === "NAVIGATING_TO_SUBGRID"){
-            console.log("NAVIGATING_TO_SUBGRID");
-            handleAIMovement();
-        }else if(aiState === "COLLECTING"){
-            console.log("COLLECTING");
-            console.log("local targets");
-            localTargets = getTargetsInLocalCoordinates();
-            console.log(localTargets);
-            subgridAI = tokenInfo.subgrid.start;
-            oldGrid = tokenInfo.subgrid;
-            localAIx = aiStartX - subgridAI[0] + 2;
-            localAIy = aiStartY - subgridAI[1] + 1;
-            moveToNextTarget(localTargets);
+        if(helping){
+            // If not currently following a path, calculate a new one
+            if (aiState === "NAVIGATING_TO_SUBGRID"){
+                console.log("NAVIGATING_TO_SUBGRID");
+                handleAIMovement();
+            }else if(aiState === "COLLECTING"){
+                console.log("COLLECTING");
+                console.log("local targets");
+                localTargets = getTargetsInLocalCoordinates();
+                console.log(localTargets);
+                subgridAI = tokenInfo.subgrid.start;
+                oldGrid = tokenInfo.subgrid;
+                localAIx = aiStartX - subgridAI[0] + 2;
+                localAIy = aiStartY - subgridAI[1] + 1;
+                moveToNextTarget(localTargets);
+            }else if (aiState === "SAVING_STAGE_ONE"){
+                console.log("SAVING_STAGE_ONE");
+                handleSavingStageOne();
+            }else if (aiState === "SAVING_STAGE_TWO"){
+                console.log("SAVING_STAGE_TWO");
+                handleSavingStageTwo();
+            }
+        }else if(!helping){
+            if (aiState === "NAVIGATING_TO_SUBGRID"){
+                console.log("NAVIGATING_TO_SUBGRID");
+                handleAIMovement();
+            }else if(aiState === "COLLECTING"){
+                console.log("COLLECTING");
+                console.log("local targets");
+                localTargets = getTargetsInLocalCoordinates();
+                console.log(localTargets);
+                subgridAI = tokenInfo.subgrid.start;
+                oldGrid = tokenInfo.subgrid;
+                localAIx = aiStartX - subgridAI[0] + 2;
+                localAIy = aiStartY - subgridAI[1] + 1;
+                moveToNextTarget(localTargets);
+            }
         }
-        // else if (aiState === "SAVING_STAGE_ONE"){
-        //     console.log("SAVING_STAGE_ONE");
-        //     handleSavingStageOne();
-        // }else if (aiState === "SAVING_STAGE_TWO"){
-        //     console.log("SAVING_STAGE_TWO");
-        //     handleSavingStageTwo();
-        // }
     }else if(playerTwoTrapped === 'blue'){
 
         aiState = "COLLECTING";
@@ -2346,40 +2388,14 @@ function handleAIStateandDecision(){
         }
 
         playerTwoTrapped = 'saving completed';
-    }
-    // else if (timeToSaveTrappedHuman && aiState === "NAVIGATING_TO_SUBGRID" && playerOneTrapped === true){
+    }else if (timeToSaveTrappedHuman && aiState === "NAVIGATING_TO_SUBGRID" && playerOneTrapped === true && helping){
 
-    //     isPathBeingFollowed = false;
-    //     timeToSaveTrappedHuman = false;
-    //     aiState = "SAVING_STAGE_ONE";
+        isPathBeingFollowed = false;
+        timeToSaveTrappedHuman = false;
+        aiState = "SAVING_STAGE_ONE";
         
-    // }
+    }
 }
-
-// function calculateDirection(point1, point2) {
-//     const dx = point2.x - point1.x;
-//     const dy = point2.y - point1.y;
-//     return [dx, dy];
-// }
-
-// function handleAIInterval(){
-
-//     if (pathIndex - 1 == -1){
-//         AIUpdateInterval = SLOW_UPDATE_INTERVAL; 
-//         return AIUpdateInterval;
-//     }
-//     let currentDirection = calculateDirection(currentPath[pathIndex - 1], currentPath[pathIndex]);
-//     let upcomingDirection = calculateDirection(currentPath[pathIndex], currentPath[pathIndex + 1]);
-    
-//     if (!arraysEqual(currentDirection, upcomingDirection)) {
-//       AIUpdateInterval = SLOW_UPDATE_INTERVAL; // Adjust interval if direction changed
-//     } else {
-//       AIUpdateInterval = NORMAL_UPDATE_INTERVAL;
-//     }
-
-//     return AIUpdateInterval;
-    
-// }
 
 function setupGameElements(scene) {
     initializeDemo(scene);
@@ -2444,7 +2460,7 @@ let instructions = [
     " The tokens you can collect are\n the red flowers. \n When you finish collecting\n all red flowers in an area, \n a new group of red flowers\n will appear in another area.\n Now try to collect three flowers. ",
     " Now we will add\n a blue robot player to the game.\n The blue robot will only\n collect the blue butterflies.",
     " Also, the blue robot can only\n move through blue doors.\n You, as the red player,\n can only move through red doors.",
-    " Let's start the first round. There are 5 rounds total. \n Have fun!!"
+    " Let's start the first round. There are 9 rounds total. \n Have fun!!"
 ];
 let currentInstructionIndex = 0;
 
@@ -2608,6 +2624,3 @@ function completeSetup(scene) {
     startGamePlay = true;
 
 }
-
-
-
