@@ -15,7 +15,23 @@ let pomdp = null;         // the live policy
 // when your experiment starts:
 pomdp = new LsPomdpPolicySession();
 
-let [action, belief] = pomdp.start('r_trap'); 
+let greedy = null;
+
+greedy = new GreedyPolicySession();
+
+let react = null;   
+
+react = new ReciprocalReactiveSession();
+
+let action;
+
+let belief;
+
+let signal;
+
+let lastmode;
+
+lastmode = 'r_trap';
 
 function applySignal(action) {
     const act = (action || '').trim();
@@ -36,6 +52,15 @@ function applySignal(action) {
     return result;
   }
   
+function reactSignal(action) {
+    const act = (action || '').trim();
+    if (act === 'a_0') return false;
+    if (act === 'a_1') return true;
+    if (act === 'h_0') return false;
+    if (act === 'h_1') return true;
+    console.warn('Unexpected action:', act);
+    return 0;
+  }
 // const cellHeight = 40; 
 // const cellWidth = 60; 
 // const gridHeight = 13;
@@ -62,7 +87,7 @@ const players = {
     }
 };
 
-let studyId = 'ExpTwoProlific';
+let studyId = 'pompdp';
 
 const paramsHRI = new URLSearchParams(window.location.search);
 const writeToTryoutData = paramsHRI.get('notProlific');
@@ -82,69 +107,30 @@ const showQuestionnaireOnly = params.get('questionnaireOnly');
 let trapTimeForEachRound;
 
 // Example 1: Assign a random condition for Viewpoint
-const TRAPSEQUENCE = 'WHATSEQUENCE'; // a string we use to represent the condition name
-let numConditions = 6; // Number of conditions for this variable
+const TRAPSEQUENCE = 'POMDP'; // a string we use to represent the condition name
+let numConditions = 3; // Number of conditions for this variable
 let numDraws = 1; // Number of  assignments (mutually exclusive) we want to sample for this participants
 let assignedConditionTemp = await blockRandomization(studyId, TRAPSEQUENCE, numConditions,
   maxCompletionTimeMinutes, numDraws); // the await keyword is mandatory
 
 let assignedCondition = assignedConditionTemp[0];
 
-// HHAAA
-// AHHAA
-// AAHHA
-// HAHAA
-// AHAHA
-// HAAHA
-if (assignedCondition === 0){
-    trapTimeForEachRound = {
-        0: { human: 20, AI: 200 },
-        1: { human: 20, AI: 200 },
-        2: { human: 200, AI: 20 },
-        3: { human: 200, AI: 20 },
-        4: { human: 200, AI: 20 },
-      };
+if(assignedCondition === 0){
+    console.log("we are running on lspomp");
+    //lspomp
+    [action, belief] = pomdp.start('r_trap'); 
+    signal = applySignal(action);
+
 }else if( assignedCondition === 1){
-    trapTimeForEachRound = {
-        0: { human: 200, AI: 20 },
-        1: { human: 20, AI: 200 },
-        2: { human: 20, AI: 200 },
-        3: { human: 200, AI: 20 },
-        4: { human: 200, AI: 20 },
-      };
+    console.log("we are running on greedy policy");
+    [action, belief] = greedy.start('r_trap');
+    signal = applySignal(action);
 
 }else if( assignedCondition === 2){
-    trapTimeForEachRound = {
-        0: { human: 200, AI: 20 },
-        1: { human: 200, AI: 20 },
-        2: { human: 20, AI: 200 },
-        3: { human: 20, AI: 200 },
-        4: { human: 200, AI: 20 },
-      };
-}else if( assignedCondition === 3){
-    trapTimeForEachRound = {
-        0: { human: 20, AI: 200 },
-        1: { human: 200, AI: 20 },
-        2: { human: 20, AI: 200 },
-        3: { human: 200, AI: 20 },
-        4: { human: 200, AI: 20 },
-      };
-}else if( assignedCondition === 4){
-    trapTimeForEachRound = {
-        0: { human: 200, AI: 20 },
-        1: { human: 20, AI: 200 },
-        2: { human: 200, AI: 20 },
-        3: { human: 20, AI: 200 },
-        4: { human: 200, AI: 20 },
-      };
-}else if( assignedCondition === 5){
-    trapTimeForEachRound = {
-        0: { human: 20, AI: 200 },
-        1: { human: 200, AI: 20 },
-        2: { human: 200, AI: 20 },
-        3: { human: 20, AI: 200 },
-        4: { human: 200, AI: 20 },
-      };
+    console.log("we are running on react policy");
+    [action, belief] = react.start('r_trap');
+    signal = reactSignal(action);
+
 }
 
 trapTimeForEachRound = {
@@ -173,9 +159,6 @@ for (let round in trapTimeForEachRoundToSave ) {
 
 console.log(trapTimeForEachRound);
 
-let signal;
-
-signal = applySignal(action);
 
 console.log("this round we are signaling first round", signal);
 
@@ -200,7 +183,7 @@ let isDoorRotating = false;
 let doorSwitch = false;
 
 let currentTime = 0; // Start time in seconds
-let gameDuration = 30; 
+let gameDuration = 90; 
 
 let playerOneTrapped = false;
 let playerTwoTrapped = false;
@@ -884,15 +867,7 @@ function updateGameTime(scene) {
 
         currentRound++;
 
-        if (currentRound > 9) {
-            console.log("Game Over");
-            isTimeoutScheduled = true;
-            // End the game and show post-game content
-
-            runUpdateLogic = false;
-            endGame(scene);
-            return;
-        }
+        const savedBool = saved === true;  // normalize just in case
 
         let aiTrap = trapTimeForEachRound[currentRound - 1].AI;
 
@@ -903,28 +878,64 @@ function updateGameTime(scene) {
         mode = 'h_trap';   // human trapped → human acts
         }
 
-        console.log("did we save the robot", saved);
-
-        console.log("the upcoming mode is", mode);
-
-        const savedBool = saved === true;  // normalize just in case
-
         const obs = (mode === 'r_trap')
         ? 'none'                       // ignore obs on robot/signaling step
         : (savedBool ? 's_1' : 's_0'); // human phase uses outcome
 
+
+        let pathModel = studyId+'/participantData/'+firebaseUserId +'/modelData/'+'Round' + (currentRound -1);
+        let currentModelData = {
+            "mode": lastmode,
+            "obs": obs,
+            "belief": belief,
+            "action": action
+        };
+
+        writeRealtimeDatabase(pathModel, { ...currentModelData });
+
+        if (currentRound > 9) {
+            console.log("Game Over");
+            isTimeoutScheduled = true;
+            // End the game and show post-game content
+
+            runUpdateLogic = false;
+            endGame(scene);
+            return;
+        }
+
+        console.log("did we save the robot", saved);
+
+        console.log("the upcoming mode is", mode);
+
+        lastmode = mode;
+
         console.log("the observation is", obs);
 
-        [action, belief] = pomdp.updateAndAct(obs, mode);
+        if(assignedCondition == 0){
+            [action, belief] = pomdp.updateAndAct(obs, mode);
+        }else if(assignedCondition == 1){
+            [action, belief] = greedy.updateAndAct(obs, mode);
+        }else if(assignedCondition == 2){
+            [action, belief] = react.updateAndAct(obs, mode);
+        }
+
 
         console.log("our action is", action);
 
         if(mode === 'r_trap'){
-            signal = applySignal(action);
+            if (assignedCondition < 2){
+                signal = applySignal(action);
+            }else{
+                signal = reactSignal(action);
+            }
             console.log("this round we are signling", signal);
 
         }else if(mode === 'h_trap'){
-            helping = applySignal(action);
+            if(assignedCondition < 2){
+                helping = applySignal(action);
+            }else{
+                helping = reactSignal(action);
+            }
             console.log("this round we are helping", helping);
         }
   
@@ -1424,25 +1435,33 @@ function create() {
     let pathnow = studyId+'/participantData/'+firebaseUserId+'/assignedCondition';
     let assignedConditionExplained;
 
-// HHAAA
-// AHHAA
-// AAHHA
-// HAHAA
-// AHAHA
-// HAAHA
+// // HHAAA
+// // AHHAA
+// // AAHHA
+// // HAHAA
+// // AHAHA
+// // HAAHA
+
+//     if(assignedCondition === 0){
+//         assignedConditionExplained = assignedCondition + "HHAAA";
+//     }else if (assignedCondition === 1){
+//         assignedConditionExplained =  assignedCondition + "AHHAA";
+//     }else if (assignedCondition === 2){
+//         assignedConditionExplained =  assignedCondition + "AAHHA";
+//     }else if(assignedCondition === 3){
+//         assignedConditionExplained =  assignedCondition + "HAHAA";
+//     }else if(assignedCondition === 4){
+//         assignedConditionExplained =  assignedCondition + "AHAHA";
+//     }else if(assignedCondition === 5){
+//         assignedConditionExplained =  assignedCondition + "HAAHA";
+//     }
 
     if(assignedCondition === 0){
-        assignedConditionExplained = assignedCondition + "HHAAA";
+        assignedConditionExplained = assignedCondition + "ls_pomdp";
     }else if (assignedCondition === 1){
-        assignedConditionExplained =  assignedCondition + "AHHAA";
+        assignedConditionExplained =  assignedCondition + "greedy";
     }else if (assignedCondition === 2){
-        assignedConditionExplained =  assignedCondition + "AAHHA";
-    }else if(assignedCondition === 3){
-        assignedConditionExplained =  assignedCondition + "HAHAA";
-    }else if(assignedCondition === 4){
-        assignedConditionExplained =  assignedCondition + "AHAHA";
-    }else if(assignedCondition === 5){
-        assignedConditionExplained =  assignedCondition + "HAAHA";
+        assignedConditionExplained =  assignedCondition + "reactive";
     }
 
 
