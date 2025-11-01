@@ -867,6 +867,31 @@ function updateGameTime(scene) {
 
         currentRound++;
 
+
+        if (currentRound > 9) {
+            console.log("Game Over");
+            const savedBool = saved === true;  // normalize just in case
+
+            const obs = (savedBool ? 's_1' : 's_0'); 
+
+            let pathModel = studyId+'/participantData/'+firebaseUserId +'/modelData/'+'Round' + (currentRound -1);
+            let currentModelData = {
+                "mode": 'r_trap',
+                "obs": obs,
+                "belief": belief,
+                "action": action
+            };
+
+            writeRealtimeDatabase(pathModel, { ...currentModelData });
+
+            isTimeoutScheduled = true;
+            // End the game and show post-game content
+
+            runUpdateLogic = false;
+            endGame(scene);
+            return;
+        }
+
         const savedBool = saved === true;  // normalize just in case
 
         let aiTrap = trapTimeForEachRound[currentRound - 1].AI;
@@ -892,16 +917,6 @@ function updateGameTime(scene) {
         };
 
         writeRealtimeDatabase(pathModel, { ...currentModelData });
-
-        if (currentRound > 9) {
-            console.log("Game Over");
-            isTimeoutScheduled = true;
-            // End the game and show post-game content
-
-            runUpdateLogic = false;
-            endGame(scene);
-            return;
-        }
 
         console.log("did we save the robot", saved);
 
@@ -1074,7 +1089,7 @@ function proceedToNextRound(scene) {
 }
 
 function redirectToProlific() {
-    const prolificCompletionUrl = 'https://app.prolific.com/submissions/complete?cc=CBTKA62X';
+    const prolificCompletionUrl = 'https://app.prolific.com/submissions/complete?cc=C10I7FH4';
     window.location.replace(prolificCompletionUrl);
 }
 
