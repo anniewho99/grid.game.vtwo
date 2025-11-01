@@ -5,6 +5,10 @@ import { writeRealtimeDatabase,writeURLParameters,readRealtimeDatabase,
 
 import LsPomdpPolicySession from './lspomdp.js';
 
+import GreedyPolicySession from './greedypolicy.js';
+
+import ReciprocalReactiveSession from './reciprocal.js';
+
 // globals
 let pomdp = null;         // the live policy
 
