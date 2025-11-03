@@ -1411,7 +1411,7 @@ function create() {
 
     let messages = [
         ' You are going to play a simple game with a robot player. \n The primary goal of the game is to collect tokens: flowers and butterflies. \n You will collect flowers while the robot will collect butterflies.',
-        ' There are 5 short rounds of the game.\n Each round lasts around 90 seconds.',
+        ' There are 9 short rounds of the game.\n Each round lasts around 90 seconds.',
         ' Let’s start with a demo!'
     ];
     let currentMessageIndex = 0;
