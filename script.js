@@ -87,7 +87,7 @@ const players = {
     }
 };
 
-let studyId = 'pompdp';
+let studyId = 'pompdpData';
 
 const paramsHRI = new URLSearchParams(window.location.search);
 const writeToTryoutData = paramsHRI.get('notProlific');
