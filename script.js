@@ -13,19 +13,19 @@ import AlwaysHighPolicySession from './alwayshigh.js';
 
 import AlwaysLowPolicySession from './alwayslow.js';
 
-// globals
-let pomdp = null;         // the live policy
+// // globals
+// let pomdp = null;         // the live policy
 
-// when your experiment starts:
-pomdp = new LsPomdpPolicySession();
+// // when your experiment starts:
+// pomdp = new LsPomdpPolicySession();
 
-let greedy = null;
+// let greedy = null;
 
-greedy = new GreedyPolicySession();
+// greedy = new GreedyPolicySession();
 
-let react = null;   
+// let react = null;   
 
-react = new ReciprocalReactiveSession();
+// react = new ReciprocalReactiveSession();
 
 let high = null;
 
