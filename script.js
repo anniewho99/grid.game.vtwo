@@ -9,6 +9,10 @@ import GreedyPolicySession from './greedypolicy.js';
 
 import ReciprocalReactiveSession from './reciprocal.js';
 
+import AlwaysHighPolicySession from './alwayshigh.js';
+
+import AlwaysLowPolicySession from './alwayslow.js';
+
 // globals
 let pomdp = null;         // the live policy
 
@@ -22,6 +26,14 @@ greedy = new GreedyPolicySession();
 let react = null;   
 
 react = new ReciprocalReactiveSession();
+
+let high = null;
+
+high = new AlwaysHighPolicySession();
+
+let low = null;
+
+low = new AlwaysLowPolicySession();
 
 let action;
 
@@ -87,7 +99,7 @@ const players = {
     }
 };
 
-let studyId = 'pompdpData';
+let studyId = 'pompdpExtreme';
 
 const paramsHRI = new URLSearchParams(window.location.search);
 const writeToTryoutData = paramsHRI.get('notProlific');
@@ -108,28 +120,42 @@ let trapTimeForEachRound;
 
 // Example 1: Assign a random condition for Viewpoint
 const TRAPSEQUENCE = 'POMDP'; // a string we use to represent the condition name
-let numConditions = 3; // Number of conditions for this variable
+let numConditions = 2; // Number of conditions for this variable
 let numDraws = 1; // Number of  assignments (mutually exclusive) we want to sample for this participants
 let assignedConditionTemp = await blockRandomization(studyId, TRAPSEQUENCE, numConditions,
   maxCompletionTimeMinutes, numDraws); // the await keyword is mandatory
 
 let assignedCondition = assignedConditionTemp[0];
 
+// if(assignedCondition === 0){
+//     console.log("we are running on lspomp");
+//     //lspomp
+//     [action, belief] = pomdp.start('r_trap'); 
+//     signal = applySignal(action);
+
+// }else if( assignedCondition === 1){
+//     console.log("we are running on greedy policy");
+//     [action, belief] = greedy.start('r_trap');
+//     signal = applySignal(action);
+
+// }else if( assignedCondition === 2){
+//     console.log("we are running on react policy");
+//     [action, belief] = react.start('r_trap');
+//     signal = reactSignal(action);
+
+// }
+
+
 if(assignedCondition === 0){
-    console.log("we are running on lspomp");
+    console.log("we are running on always high");
     //lspomp
-    [action, belief] = pomdp.start('r_trap'); 
+    [action, belief] = high.start('r_trap'); 
     signal = applySignal(action);
 
 }else if( assignedCondition === 1){
-    console.log("we are running on greedy policy");
-    [action, belief] = greedy.start('r_trap');
+    console.log("we are running on always low");
+    [action, belief] = low.start('r_trap');
     signal = applySignal(action);
-
-}else if( assignedCondition === 2){
-    console.log("we are running on react policy");
-    [action, belief] = react.start('r_trap');
-    signal = reactSignal(action);
 
 }
 
@@ -926,31 +952,46 @@ function updateGameTime(scene) {
 
         console.log("the observation is", obs);
 
+        // if(assignedCondition == 0){
+        //     [action, belief] = pomdp.updateAndAct(obs, mode);
+        // }else if(assignedCondition == 1){
+        //     [action, belief] = greedy.updateAndAct(obs, mode);
+        // }else if(assignedCondition == 2){
+        //     [action, belief] = react.updateAndAct(obs, mode);
+        // }
         if(assignedCondition == 0){
-            [action, belief] = pomdp.updateAndAct(obs, mode);
+            [action, belief] = high.updateAndAct(obs, mode);
         }else if(assignedCondition == 1){
-            [action, belief] = greedy.updateAndAct(obs, mode);
-        }else if(assignedCondition == 2){
-            [action, belief] = react.updateAndAct(obs, mode);
+            [action, belief] = low.updateAndAct(obs, mode);
         }
-
 
         console.log("our action is", action);
 
+        // if(mode === 'r_trap'){
+        //     if (assignedCondition < 2){
+        //         signal = applySignal(action);
+        //     }else{
+        //         signal = reactSignal(action);
+        //     }
+        //     console.log("this round we are signling", signal);
+
+        // }else if(mode === 'h_trap'){
+        //     if(assignedCondition < 2){
+        //         helping = applySignal(action);
+        //     }else{
+        //         helping = reactSignal(action);
+        //     }
+        //     console.log("this round we are helping", helping);
+        // }
         if(mode === 'r_trap'){
-            if (assignedCondition < 2){
-                signal = applySignal(action);
-            }else{
-                signal = reactSignal(action);
-            }
+    
+            signal = applySignal(action);
+            
             console.log("this round we are signling", signal);
 
         }else if(mode === 'h_trap'){
-            if(assignedCondition < 2){
-                helping = applySignal(action);
-            }else{
-                helping = reactSignal(action);
-            }
+            helping = applySignal(action);
+            
             console.log("this round we are helping", helping);
         }
   
@@ -1471,13 +1512,20 @@ function create() {
 //         assignedConditionExplained =  assignedCondition + "HAAHA";
 //     }
 
+    // if(assignedCondition === 0){
+    //     assignedConditionExplained = assignedCondition + "ls_pomdp";
+    // }else if (assignedCondition === 1){
+    //     assignedConditionExplained =  assignedCondition + "greedy";
+    // }else if (assignedCondition === 2){
+    //     assignedConditionExplained =  assignedCondition + "reactive";
+    // }
+
     if(assignedCondition === 0){
-        assignedConditionExplained = assignedCondition + "ls_pomdp";
+        assignedConditionExplained = assignedCondition + "alwayshigh";
     }else if (assignedCondition === 1){
-        assignedConditionExplained =  assignedCondition + "greedy";
-    }else if (assignedCondition === 2){
-        assignedConditionExplained =  assignedCondition + "reactive";
+        assignedConditionExplained =  assignedCondition + "alwayslow";
     }
+
 
 
     let valuenow = assignedConditionExplained;
